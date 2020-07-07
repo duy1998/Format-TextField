@@ -3,7 +3,7 @@ library flutter_masked_text;
 import 'package:flutter/material.dart';
 
 class MaskedTextController extends TextEditingController {
-  MaskedTextController({String text, this.mask, Map<String, RegExp> translator})
+  MaskedTextController({String text, this.mask, Map<String, RegExp> translator, this.formatFunc, this.parseNumFunc})
       : super(text: text) {
     this.translator = translator ?? MaskedTextController.getDefaultTranslator();
 
@@ -22,6 +22,10 @@ class MaskedTextController extends TextEditingController {
 
   String mask;
 
+  Function formatFunc;
+
+  Function parseNumFunc;
+
   Map<String, RegExp> translator;
 
   Function afterChange = (String previous, String next) {};
@@ -32,10 +36,9 @@ class MaskedTextController extends TextEditingController {
   String _lastUpdatedText = '';
 
   void updateText(String text) {
-    if(text != null){
+    if (text != null) {
       this.text = this._applyMask(this.mask, text);
-    }
-    else {
+    } else {
       this.text = '';
     }
 
@@ -53,8 +56,7 @@ class MaskedTextController extends TextEditingController {
 
   void moveCursorToEnd() {
     var text = this._lastUpdatedText;
-    this.selection = new TextSelection.fromPosition(
-        new TextPosition(offset: (text ?? '').length));
+    this.selection = new TextSelection.fromPosition(new TextPosition(offset: (text ?? '').length));
   }
 
   @override
@@ -66,12 +68,7 @@ class MaskedTextController extends TextEditingController {
   }
 
   static Map<String, RegExp> getDefaultTranslator() {
-    return {
-      'A': new RegExp(r'[A-Za-z]'),
-      '0': new RegExp(r'[0-9]'),
-      '@': new RegExp(r'[A-Za-z0-9]'),
-      '*': new RegExp(r'.*')
-    };
+    return {'A': new RegExp(r'[A-Za-z]'), '0': new RegExp(r'[0-9]'), '@': new RegExp(r'[A-Za-z0-9]'), '*': new RegExp(r'.*')};
   }
 
   String _applyMask(String mask, String value) {
@@ -80,46 +77,52 @@ class MaskedTextController extends TextEditingController {
     var maskCharIndex = 0;
     var valueCharIndex = 0;
 
-    while (true) {
-      // if mask is ended, break.
-      if (maskCharIndex == mask.length) {
-        break;
-      }
+    return formatFunc(value);
 
-      // if value is ended, break.
-      if (valueCharIndex == value.length) {
-        break;
-      }
+//    while (true) {
+//      // if mask is ended, break.
+//      if (maskCharIndex == mask.length) {
+//        break;
+//      }
+//
+//      // if value is ended, break.
+//      if (valueCharIndex == value.length) {
+//        break;
+//      }
+//
+//      var maskChar = mask[maskCharIndex];
+//      var valueChar = value[valueCharIndex];
+//
+//      // value equals mask, just set
+//      if (maskChar == valueChar) {
+//        result += maskChar;
+//        valueCharIndex += 1;
+//        maskCharIndex += 1;
+//        continue;
+//      }
+//
+//      // apply translator if match
+//      if (this.translator.containsKey(maskChar)) {
+//        if (this.translator[maskChar].hasMatch(valueChar)) {
+//          result += valueChar;
+//          maskCharIndex += 1;
+//        }
+//
+//        valueCharIndex += 1;
+//        continue;
+//      }
+//
+//      // not masked value, fixed char on mask
+//      result += maskChar;
+//      maskCharIndex += 1;
+//      continue;
+//    }
 
-      var maskChar = mask[maskCharIndex];
-      var valueChar = value[valueCharIndex];
+//    return result;
+  }
 
-      // value equals mask, just set
-      if (maskChar == valueChar) {
-        result += maskChar;
-        valueCharIndex += 1;
-        maskCharIndex += 1;
-        continue;
-      }
-
-      // apply translator if match
-      if (this.translator.containsKey(maskChar)) {
-        if (this.translator[maskChar].hasMatch(valueChar)) {
-          result += valueChar;
-          maskCharIndex += 1;
-        }
-
-        valueCharIndex += 1;
-        continue;
-      }
-
-      // not masked value, fixed char on mask
-      result += maskChar;
-      maskCharIndex += 1;
-      continue;
-    }
-
-    return result;
+  num getNum() {
+    return parseNumFunc(text);
   }
 }
 
@@ -129,11 +132,11 @@ class MaskedTextController extends TextEditingController {
 class MoneyMaskedTextController extends TextEditingController {
   MoneyMaskedTextController(
       {double initialValue = 0.0,
-        this.decimalSeparator = ',',
-        this.thousandSeparator = '.',
-        this.rightSymbol = '',
-        this.leftSymbol = '',
-        this.precision = 2}) {
+      this.decimalSeparator = ',',
+      this.thousandSeparator = '.',
+      this.rightSymbol = '',
+      this.leftSymbol = '',
+      this.precision = 2}) {
     _validateConfig();
 
     this.addListener(() {
@@ -159,8 +162,7 @@ class MoneyMaskedTextController extends TextEditingController {
 
     if (value.toStringAsFixed(0).length > 12) {
       valueToUse = _lastValue;
-    }
-    else {
+    } else {
       _lastValue = value;
     }
 
@@ -178,8 +180,7 @@ class MoneyMaskedTextController extends TextEditingController {
       this.text = masked;
 
       var cursorPosition = super.text.length - this.rightSymbol.length;
-      this.selection = new TextSelection.fromPosition(
-          new TextPosition(offset: cursorPosition));
+      this.selection = new TextSelection.fromPosition(new TextPosition(offset: cursorPosition));
     }
   }
 
@@ -210,19 +211,15 @@ class MoneyMaskedTextController extends TextEditingController {
   }
 
   String _applyMask(double value) {
-    List<String> textRepresentation = value.toStringAsFixed(precision)
-        .replaceAll('.', '')
-        .split('')
-        .reversed
-        .toList(growable: true);
+    List<String> textRepresentation =
+        value.toStringAsFixed(precision).replaceAll('.', '').split('').reversed.toList(growable: true);
 
     textRepresentation.insert(precision, decimalSeparator);
 
     for (var i = precision + 4; true; i = i + 4) {
       if (textRepresentation.length > i) {
         textRepresentation.insert(i, thousandSeparator);
-      }
-      else {
+      } else {
         break;
       }
     }
